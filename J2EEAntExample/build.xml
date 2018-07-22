@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<project name="J2EEAntExample" basedir="." default="deployApp">
+
+  <property file="build.properties" />
+
+	<!-- The Class-Path for the build is defined here-->
+	<path id="cp">
+	  	<fileset dir="${lib.dir}" includes="*.jar"/>
+		<fileset dir="${jboss.dir}/bin" includes="*.jar" />
+		<fileset dir="${jboss.dir}/lib" includes="*.jar" />
+		<fileset dir="${jboss.dir}/server/default/lib" includes="*.jar" />
+		<fileset dir="${jboss.dir}/common/lib" includes="*.jar" />
+	 </path>
+
+	<!-- The Class-Path for the JUnit Test is defined here.This also includes the compiled classes directory-->
+	<path id="jUnit.cp">
+		    <path refid="cp"/>
+			<pathelement location="${bin.dir}" />
+		</path>
+
+	<!-- Clean the classes, dist & report folder  -->
+	<target name="clean">
+		  <delete dir="${bin.dir}" />
+		  <delete dir="${temp.dir}" />
+		  <delete dir="${jboss.deploy}/J2EEAntExample.war" />
+	</target>
+
+	<!-- Create the bin,dist & report folders for fresh build -->
+	<target name="init" depends="clean">
+		  <mkdir dir="${bin.dir}" />
+		  <mkdir dir="${temp.dir}" />
+	</target>
+
+	<!-- Compilation of Java Src Files into WEB-INF/classes -->
+	<target name="compile" depends="init">
+					<javac destdir="${bin.dir}" debug="true" srcdir="${src.dir}">
+						<classpath refid="cp"/>
+					</javac>
+						<copy todir="${bin.dir}">
+						    		<fileset dir="${src.dir}">
+						    			<include name="**/*.properties" />
+						    			<include name="**/*.xml" />
+						    		</fileset>
+
+						 </copy>
+	</target>
+
+	<!-- Package the build into a WAR File after compilation & testing tasks are completed.-->
+	<target name="war" depends="compile">
+		<war destfile="${temp.dir}/J2EEAntExample.war" webxml="WebContent/WEB-INF/web.xml">
+		 <fileset dir="WebContent" />
+		 </war>
+	</target>
+
+	<!-- Copying the WAR File to the deployment folder -->
+	<target name="deployApp" depends="war,logtask,test">
+	  	<copy todir="${jboss.deploy}" file="${temp.dir}/J2EEAntExample.war" />
+	</target>
+
+	<!-- 	This task is Used to Unit-Test the Compiled Java Files -->
+		<target name="test">
+			<junit printsummary="yes" haltonfailure="yes">
+				<classpath refid="jUnit.cp" />
+				<formatter type="plain" />
+				<batchtest fork="yes" todir="${test.reports.dir}">
+					<fileset dir="${src.dir}">
+						<include name="**/*Test.java" />
+					</fileset>
+				</batchtest>
+			</junit>
+		</target>
+
+	<!-- My Custom task definition goes here-->
+		 <taskdef name="logtask" classname="com.jcg.customTasks.LogTasks" classpathref="jUnit.cp"/>
+
+		<!-- Using the custom task, Logtask defined earlier-->
+		<target name="logtask">
+		  <logtask message="Hello World!"/>
+		</target>
+
+	<!-- This task is enabled only for systems that support SCP command(primarily, *IX systems) -->
+    <target name="remoteDeploy" depends="war">
+    	  <scp file="${temp.dir}/J2EEAntExample.war" todir="chand@192.168.21.257:/home/chand" password="${Password}" verbose="on" trust="on"/>
+    </target>
+
+</project>
